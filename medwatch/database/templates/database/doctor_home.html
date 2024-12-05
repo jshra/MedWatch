@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Doctor Home</title>
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- Include jQuery -->
+    <script>
+        // Function to toggle visibility of elements
+        function toggleVisibility(elementId) {
+            var element = document.getElementById(elementId);
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+
+        // Function to load list of doctors
+        function loadDoctors() {
+            $.ajax({
+                url: "{% url 'doctor_list' %}",
+                type: "GET",
+                success: function(data) {
+                    $('#doctorListContent').html(data);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading doctors:', status, error);
+                    $('#doctorListContent').html('<p>Error loading doctors.</p>');
+                }
+            });
+        }
+
+        // Document ready function
+        $(document).ready(function() {
+            // Load doctors on page load
+            loadDoctors();
+
+            // Toggle visibility of Doctor List section
+            $('#toggleDoctorsBtn').click(function() {
+                toggleVisibility('doctorListContent');
+            });
+
+            // Toggle visibility of Patient List section
+            $('#togglePatientsBtn').click(function() {
+                toggleVisibility('patientListContent');
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Welcome, {{ request.user.username }}</h1>
+
+    <!-- Doctor List Section -->
+    <div id="doctorList">
+        <button id="toggleDoctorsBtn">Toggle Doctor List</button>
+        <div id="doctorListContent" class="hidden">
+            <!-- Doctor list will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Patient List Section -->
+    <div id="patientList">
+        <button id="togglePatientsBtn">Toggle Patient List</button>
+        <ul id="patientListContent" class="hidden">
+            {% for patient in patients %}
+                <li>
+                    <a href="{% url 'patient_measurements' patient.patient_id %}">{{ patient.name }} {{ patient.surname }}</a>
+                </li>
+            {% empty %}
+                <li>No patients assigned.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Logout Form -->
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

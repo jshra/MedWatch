@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sensor Home</title>
+</head>
+<body>
+    <h2>Sensor Home</h2>
+    {% if sensor %}
+    <p><strong>Sensor ID:</strong> {{ sensor.sensor_id }}</p>
+    <p><strong>Connected Patient ID:</strong>
+        {% if sensor.patient %}
+            {{ sensor.patient }}
+        {% else %}
+            No patient
+        {% endif %}
+    </p>
+    {% else %}
+    <p>No sensor information found.</p>
+    {% endif %}
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

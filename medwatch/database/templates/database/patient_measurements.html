@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Measurements</title>
+    <!-- Include Chart.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Measurements for {{ patient.name }} {{ patient.surname }}</h1>
+    <table id="measurement-table">
+        <thead>
+            <tr>
+                <th>Heart Rate</th>
+                <th>Saturation</th>
+                <th>Temperature</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for measurement in measurements %}
+                <tr>
+                    <td>{{ measurement.HR }}</td>
+                    <td>{{ measurement.saturation }}</td>
+                    <td>{{ measurement.temperature }}</td>
+                    <td>{{ measurement.timestamp }}</td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4">No measurements available.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <form method="GET" id="filter-form">
+        <label for="hr-min">Min Heart Rate:</label>
+        <input type="number" name="hr_min" id="hr-min" value="{{ hr_min }}">
+        
+        <label for="saturation-min">Min Saturation:</label>
+        <input type="number" name="saturation_min" id="saturation-min" value="{{ saturation_min }}">
+        
+        <label for="temperature-min">Min Temperature:</label>
+        <input type="number" name="temperature_min" id="temperature-min" value="{{ temperature_min }}">
+        <br>
+        <label for="per-page">Results per page:</label>
+        
+        <select name="per_page" id="per-page">
+            <option value="5" {% if per_page == '5' %}selected{% endif %}>5</option>
+            <option value="10" {% if per_page == '10' %}selected{% endif %}>10</option>
+            <option value="25" {% if per_page == '25' %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page == '50' %}selected{% endif %}>50</option>
+        </select>
+        
+        <button type="submit">Show</button>
+    </form>
+    <!-- Pagination Controls -->
+    <div id="pagination-controls">
+        {% if measurements.has_previous %}
+            <a href="?page=1&per_page={{ per_page }}&hr_min={{ hr_min }}&saturation_min={{ saturation_min }}&temperature_min={{ temperature_min }}&search_text={{ search_text }}">&laquo; First</a>
+            <a href="?page={{ measurements.previous_page_number }}&per_page={{ per_page }}&hr_min={{ hr_min }}&saturation_min={{ saturation_min }}&temperature_min={{ temperature_min }}&search_text={{ search_text }}">&lt; Prev</a>
+        {% endif %}
+
+        Page {{ measurements.number }} of {{ measurements.paginator.num_pages }}
+
+        {% if measurements.has_next %}
+            <a href="?page={{ measurements.next_page_number }}&per_page={{ per_page }}&hr_min={{ hr_min }}&saturation_min={{ saturation_min }}&temperature_min={{ temperature_min }}&search_text={{ search_text }}">Next &gt;</a>
+            <a href="?page={{ measurements.paginator.num_pages }}&per_page={{ per_page }}&hr_min={{ hr_min }}&saturation_min={{ saturation_min }}&temperature_min={{ temperature_min }}&search_text={{ search_text }}">Last &raquo;</a>
+        {% endif %}
+    </div>
+
+    <!-- Canvas for Heart Rate Chart -->
+    <canvas id="hrChart" width="400" height="200"></canvas>
+
+    <!-- Canvas for Saturation Chart -->
+    <canvas id="saturationChart" width="400" height="200"></canvas>
+
+    <!-- Canvas for Temperature Chart -->
+    <canvas id="temperatureChart" width="400" height="200"></canvas>
+
+    <br>
+    <button onclick="exportToCSV()">Download CSV</button>
+
+    <br>
+    <a href="{% url 'doctor_home' %}">Return to Home Screen</a>
+
+    <script>
+        function downloadCSV(csv, filename) {
+            const csvFile = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+            // create a temporary URL for the file
+            const url = URL.createObjectURL(csvFile);
+
+            // create a link element for the URL
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.style.display = 'none';
+            document.body.appendChild(link);
+
+            // simulate click to trigger download
+            link.click();
+
+            // clean up
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Automatically plot data when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            plotHeartRate();
+            plotSaturation();
+            plotTemperature();
+        });
+
+        function exportToCSV() {
+            const rows = document.querySelectorAll('#measurement-table tbody tr');
+            const header = Array.from(document.querySelectorAll('#measurement-table thead th')).map(th => th.innerText);
+            const csvRows = [];
+
+            // build CSV content
+            csvRows.push(header.join(','));
+
+            rows.forEach(row => {
+                const csvRow = [];
+                Array.from(row.cells).forEach(cell => {
+                    csvRow.push(cell.innerText);
+                });
+                csvRows.push(csvRow.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const filename = 'measurements.csv';
+
+            // download CSV file
+            downloadCSV(csvContent, filename);
+        }
+
+        function plotHeartRate() {
+            const rows = document.querySelectorAll('#measurement-table tbody tr');
+            const labels = [];
+            const hrData = [];
+
+            // Iterate over table rows to extract data for plotting
+            rows.forEach(row => {
+                const cells = row.cells;
+                labels.push(cells[3].innerText); // Assuming timestamp is in the 4th cell (index 3)
+                hrData.push(parseFloat(cells[0].innerText)); // HR data
+            });
+
+            const ctx = document.getElementById('hrChart').getContext('2d');
+
+            const hrChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Heart Rate',
+                        data: hrData,
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Heart Rate'
+                        }
+                    }
+                }
+            });
+        }
+
+        function plotSaturation() {
+            const rows = document.querySelectorAll('#measurement-table tbody tr');
+            const labels = [];
+            const saturationData = [];
+
+            // Iterate over table rows to extract data for plotting
+            rows.forEach(row => {
+                const cells = row.cells;
+                labels.push(cells[3].innerText); // Assuming timestamp is in the 4th cell (index 3)
+                saturationData.push(parseFloat(cells[1].innerText)); // Saturation data
+            });
+
+            const ctx = document.getElementById('saturationChart').getContext('2d');
+
+            const saturationChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Saturation',
+                        data: saturationData,
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Saturation'
+                        }
+                    }
+                }
+            });
+        }
+
+        function plotTemperature() {
+            const rows = document.querySelectorAll('#measurement-table tbody tr');
+            const labels = [];
+            const temperatureData = [];
+
+            // Iterate over table rows to extract data for plotting
+            rows.forEach(row => {
+                const cells = row.cells;
+                labels.push(cells[3].innerText); // Assuming timestamp is in the 4th cell (index 3)
+                temperatureData.push(parseFloat(cells[2].innerText)); // Temperature data
+            });
+
+            const ctx = document.getElementById('temperatureChart').getContext('2d');
+
+            const temperatureChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature',
+                        data: temperatureData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Temperature'
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

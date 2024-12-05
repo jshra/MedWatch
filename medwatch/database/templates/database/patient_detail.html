@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Patient Detail - {{ patient.name }} {{ patient.surname }}</title>
+</head>
+<body>
+    <h1>{{ patient.name }} {{ patient.surname }}</h1>
+
+    <h2>Measurement List:</h2>
+    <ul>
+        {% for measurement in measurements %}
+            <li>{{ measurement.timestamp }} - Pulse: {{ measurement.pulse }}, Saturation: {{ measurement.saturation }}, Temperature: {{ measurement.temperature }}</li>
+        {% empty %}
+            <li>No measurements found.</li>
+        {% endfor %}
+    </ul>
+
+    <p><a href="{% url 'add_measurement' patient_id=patient.patient_id %}">Add Measurement</a></p>
+</body>
+</html>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Generic Home</title>
+</head>
+<body>
+    <h1>Welcome to MedWatch</h1>
+    <p>Your account awaits verification.</p>
+    
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

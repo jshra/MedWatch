@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Patient</title>
+</head>
+<body>
+    <h2>Add Patient</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+    <a href="{% url 'doctor_home' %}">Return to Home Screen</a>
+</body>
+</html>
